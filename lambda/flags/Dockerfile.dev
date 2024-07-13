@@ -1,0 +1,37 @@
+# Using the Rocker base R image for convenience's sake - it even comes with 
+# radian! Also specifying the linux/amd64 image, which is required so that 
+# Ubuntu binaries get picked up from Posit Package Manager. Hash taken from:
+# https://github.com/rocker-org/devcontainer-images/pkgs/container/devcontainer%2Fr-ver
+FROM ghcr.io/rocker-org/devcontainer/r-ver:4.4@sha256:e99cfe63efd5d79f44146d8be8206019fd7a7230116aa6488097ee660d6aa5dc
+
+# Install the Lambda Runtime Interface Emulator, which can be used for locally
+# invoking the function.
+# See https://github.com/aws/aws-lambda-runtime-interface-emulator for details
+RUN apt-get update && apt-get -y install --no-install-recommends curl 
+RUN curl -Lo /usr/local/bin/aws-lambda-rie https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie && \
+    chmod +x /usr/local/bin/aws-lambda-rie
+
+# options(warn=2) will make the build error out if package doesn't install
+RUN Rscript -e "options(warn = 2); install.packages('pak')"
+# Using {pak} to install R packages: it resolves Ubuntu system dependencies AND
+# the R dependency tree!
+RUN Rscript -e "options( \ 
+    warn = 2, \
+    repos = c(CRAN = 'https://p3m.dev/cran/__linux__/jammy/2024-07-06') \
+    ); \ 
+    pak::pak( \ 
+    c( \ 
+    'httr2', \
+    'lambdr' \
+    ) \
+    )"
+
+# Lambda setup
+RUN mkdir /R
+
+# Needs to be set to use aws-lambda-rie. It is the path up to runtime.R
+ENV LAMBDA_TASK_ROOT="/R"
+
+# Optional for local testing
+# 900s, i.e. 15 min, the max time a lambda can run for.
+ENV AWS_LAMBDA_FUNCTION_TIMEOUT=900
