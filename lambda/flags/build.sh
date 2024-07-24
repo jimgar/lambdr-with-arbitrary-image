@@ -17,7 +17,7 @@ docker run \
     -p 9000:8080 \
     -it \
     --rm \
-    -v ~/.aws/:/home/rstudio/.aws \
+    -v ~/.aws/:/root/.aws \
     -v ./R:/R \
     -v ./local-testing:/local-testing \
     --name flags \
